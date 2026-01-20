@@ -1,0 +1,56 @@
+# Binaries
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+
+# Dependency directories
+vendor/
+
+# Environment files
+.env
+.env.local
+
+# Data directories
+data/
+*.apk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go module files
+go.mod
+go.sum
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
