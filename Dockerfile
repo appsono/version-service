@@ -2,8 +2,7 @@ FROM golang:1.21-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache git
 COPY . .
-RUN if [ ! -f go.mod ]; then go mod init sono-version-service; fi && \
-    go mod tidy
+RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 FROM alpine:3.19
 RUN apk --no-cache add ca-certificates tzdata
