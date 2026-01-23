@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -52,13 +54,19 @@ func (h *DownloadHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	defer reader.Close()
 
 	if h.db != nil {
-		go h.db.LogDownload(
-			r.Context(),
-			string(channel),
-			versionInfo.Version,
-			getClientIP(r),
-			r.UserAgent(),
-		)
+		//capture values before goroutine to avoid race conditions
+		//use background context since request context may be cancelled after response
+		ch := string(channel)
+		ver := versionInfo.Version
+		ip := getClientIP(r)
+		ua := r.UserAgent()
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := h.db.LogDownload(ctx, ch, ver, ip, ua); err != nil {
+				log.Printf("Failed to log download: %v", err)
+			}
+		}()
 	}
 
 	w.Header().Set("Content-Type", "application/vnd.android.package-archive")

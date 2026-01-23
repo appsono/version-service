@@ -36,7 +36,79 @@ func New(databaseURL string) (*DB, error) {
 	}
 
 	log.Println("Database: Connected successfully")
-	return &DB{conn: conn}, nil
+
+	db := &DB{conn: conn}
+	if err := db.initSchema(); err != nil {
+		log.Printf("Database: Warning - failed to initialize schema: %v", err)
+	}
+
+	return db, nil
+}
+
+func (db *DB) initSchema() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	schema := `
+	CREATE TABLE IF NOT EXISTS releases (
+		id SERIAL PRIMARY KEY,
+		channel VARCHAR(20) NOT NULL,
+		version VARCHAR(50) NOT NULL,
+		version_code INTEGER NOT NULL,
+		file_name VARCHAR(255) NOT NULL,
+		file_size BIGINT,
+		sha256 VARCHAR(64),
+		release_notes TEXT,
+		published_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+		UNIQUE(channel, version)
+	);
+
+	CREATE TABLE IF NOT EXISTS downloads (
+		id SERIAL PRIMARY KEY,
+		release_id INTEGER REFERENCES releases(id),
+		channel VARCHAR(20) NOT NULL,
+		version VARCHAR(50) NOT NULL,
+		ip_address INET,
+		user_agent TEXT,
+		downloaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+	);
+
+	CREATE TABLE IF NOT EXISTS upload_logs (
+		id SERIAL PRIMARY KEY,
+		channel VARCHAR(20) NOT NULL,
+		version VARCHAR(50) NOT NULL,
+		status VARCHAR(20) NOT NULL,
+		message TEXT,
+		source_url TEXT,
+		uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+	);
+
+	CREATE TABLE IF NOT EXISTS request_logs (
+		id SERIAL PRIMARY KEY,
+		endpoint VARCHAR(255) NOT NULL,
+		method VARCHAR(10) NOT NULL,
+		status_code INTEGER,
+		ip_address INET,
+		user_agent TEXT,
+		response_time_ms INTEGER,
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_releases_channel ON releases(channel);
+	CREATE INDEX IF NOT EXISTS idx_downloads_channel ON downloads(channel);
+	CREATE INDEX IF NOT EXISTS idx_downloads_date ON downloads(downloaded_at);
+	CREATE INDEX IF NOT EXISTS idx_request_logs_endpoint ON request_logs(endpoint);
+	CREATE INDEX IF NOT EXISTS idx_request_logs_date ON request_logs(created_at);
+	`
+
+	_, err := db.conn.ExecContext(ctx, schema)
+	if err != nil {
+		return err
+	}
+
+	log.Println("Database: Schema initialized successfully")
+	return nil
 }
 
 func (db *DB) Close() error {
