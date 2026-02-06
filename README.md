@@ -58,15 +58,15 @@ go run main.go
 GitHub Actions can upload APKs via POST request:
 
 ```bash
-curl -X POST https://your-domain.com/api/v1/upload \
+curl -X POST http://localhost:8080/api/v1/upload \
   -H "Content-Type: application/json" \
   -H "X-Webhook-Secret: your-secret" \
   -d '{
     "channel": "beta",
-    "version": "1.0.9",
+    "version": "1.0.1",
     "version_code": 10,
     "release_notes": "Bug fixes",
-    "apk_url": "https://github.com/.../sono-beta.apk"
+    "apk_url": "https://github.com/.../myapp.apk"
   }'
 ```
 
